@@ -30,4 +30,5 @@ jobs:
     - run: echo "${SNOWFLAKE_PRIVATE_KEY_PEM} >> private_key_file.p8"
     - run: ./bin/fetch.sh
     - run: ./bin/dryRun.sh
+    - run: ./bin/provision.sh    
 
