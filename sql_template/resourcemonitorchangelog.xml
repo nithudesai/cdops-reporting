@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="1" author="generic_report" labels="RESOURCE_MONITOR">
+        <tagDatabase  tag="rollback_resourcemonitor"/>
+    </changeSet>
+    <include file="sql_template/ResourceMonitor/REPORTING_TABLE.sql"/>
+    <include file="sql_template/ResourceMonitor/PROCEDURE.sql"/>
+    <!--<include file="sql_template/ResourceMonitor/TASK.sql"/>-->
+    <include file="sql_template/ResourceMonitor/VIEWS.sql"/>
+</databaseChangeLog>

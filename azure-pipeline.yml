@@ -1,0 +1,56 @@
+trigger:
+  - main
+pr:
+  branches:
+    include:
+      - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Validate
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    jobs:
+      - job: DryRun
+        steps:
+          - task: Bash@3
+            displayName: "Fetch Liquibase Jar"
+            inputs:
+              filePath: bin/fetch.sh
+          - task: DownloadSecureFile@1
+            name: snowflake_key
+            displayName: 'Download Snowflake Key File'
+            inputs:
+              secureFile: 'snowflake_key.p8'
+          - task: Bash@3
+            displayName: "Dry Run CDOPS SQl"
+            inputs:
+              filePath: bin/dryRunAzure.sh
+            env:
+              CDOPS_PRIVATE_KEY: $(snowflake_key.secureFilePath)
+              CDOPS_SNOWFLAKE_USER: $(CDOPSSnowflakeUser)
+              CDOPS_PRIVATE_PASSPHRASE: $(CDOPSSnowflakePrivKeyPassword)
+
+  - stage: Deploy
+    condition: eq(variables['Build.SourceBranchName'], 'main')
+    jobs:
+      - job: Deploy
+        steps:
+          - task: Bash@3
+              displayName: "Fetch Liquibase Jar"
+              inputs:
+                filePath: bin/fetch.sh
+          - task: DownloadSecureFile@1
+            name: snowflake_key
+            displayName: 'Download Snowflake Key File'
+            inputs:
+              secureFile: 'snowflake_key.p8'
+          - task: Bash@3
+            displayName: "CDOPS Provision SQL"
+            inputs:
+              filePath: bin/provisionAzure.sh
+            env:
+              CDOPS_PRIVATE_KEY: $(snowflake_key.secureFilePath)
+              CDOPS_SNOWFLAKE_USER: $(CDOPSSnowflakeUser)
+              CDOPS_PRIVATE_PASSPHRASE: $(CDOPSSnowflakePrivKeyPassword)

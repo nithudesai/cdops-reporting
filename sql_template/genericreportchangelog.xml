@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="1" author="generic_report" labels="GENERIC">
+        <tagDatabase  tag="rollback_genericreport"/>
+    </changeSet>
+    <include file="sql_template/GenericReports/VIEWS.sql"/>
+    <include file="sql_template/GenericReports/GRANTS_TO_ROLES.sql"/>
+    <include file="sql_template/GenericReports/GRANTS_TO_USERS.sql"/>
+    <include file="sql_template/GenericReports/ORGANIZATION_USAGE/ORG_USAGE_RATE_SHEET_DAILY.sql"/>
+    <include file="sql_template/GenericReports/AUTOMATIC_CLUSTERING_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/COPY_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/LOAD_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/DATABASE_STORAGE_USAGE_MONTHLY_SUMMARY.sql"/>
+    <include file="sql_template/GenericReports/MATERIALIZED_VIEW_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/PIPE_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/READERACCOUNT_WAREHOUSE_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/READERACCOUNT_QUERY_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/REPLICATION_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/SESSION_DATA.sql"/>
+    <include file="sql_template/GenericReports/STORAGE_USAGE_MONTHLY_SUMMARY.sql"/>
+    <include file="sql_template/GenericReports/TABLE_STORAGE_USAGE.sql"/>
+    <include file="sql_template/GenericReports/WAREHOUSE_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/QUERY_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/QUERY_CREDIT.sql"/>
+    <include file="sql_template/GenericReports/USAGE_MONTH_CREDITS_QUERYCNT.sql"/>
+    <include file="sql_template/GenericReports/DB_SCHEMA_CREDIT_DATA.sql"/>
+    <include file="sql_template/GenericReports/TASK_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/SEARCH_OPTIMIZATION_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/SERVERLESS_TASK_HISTORY.sql"/>
+    <!--<include file="sql_template/GenericReports/MEMBER_RESOURCE_MAPPING.sql"/>-->
+    <include file="sql_template/GenericReports/ORGANIZATION_USAGE/ORG_USAGE_IN_CURRENCY_DAILY.sql"/>
+    <include file="sql_template/GenericReports/ORGANIZATION_USAGE/ORG_USAGE_WAREHOUSE_METERING_HISTORY.sql"/>
+    <include file="sql_template/GenericReports/ACTIVE_RESOURCES.sql"/>
+    <include file="sql_template/GenericReports/OBJECT_DEPENDENCIES.sql"/>
+</databaseChangeLog>

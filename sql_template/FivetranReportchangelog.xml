@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="1" author="generic_report" labels="GENERIC">
+        <tagDatabase  tag="rollback_genericreport"/>
+    </changeSet>
+    <include file="sql_template/FivetranReports/ACCOUNT.sql"/>
+    <include file="sql_template/FivetranReports/ACCOUNT_MEMBERSHIP.sql"/>
+    <include file="sql_template/FivetranReports/CONNECTOR.sql"/>
+    <include file="sql_template/FivetranReports/CONNECTOR_TYPE.sql"/>
+    <include file="sql_template/FivetranReports/DESTINATION.sql"/>
+    <include file="sql_template/FivetranReports/DESTINATION_MEMBERSHIP.sql"/>
+    <include file="sql_template/FivetranReports/FIVETRAN_AUDIT.sql"/>
+    <include file="sql_template/FivetranReports/INCREMENTAL_MAR.sql"/>
+    <include file="sql_template/FivetranReports/LOG.sql"/>
+    <include file="sql_template/FivetranReports/RESOURCE_MEMBERSHIP.sql"/>
+    <include file="sql_template/FivetranReports/ROLE.sql"/>
+    <include file="sql_template/FivetranReports/ROLE_PERMISSION.sql"/>
+    <include file="sql_template/FivetranReports/USER.sql"/>
+</databaseChangeLog>

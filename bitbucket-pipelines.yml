@@ -1,0 +1,56 @@
+image: openjdk:11
+
+pipelines:
+  definitions:
+    - step: &fetch
+        name: "Fetch Parcels"
+        script:
+          - bin/fetch.sh
+        artifacts:
+          - liquibase.zip
+    - step: &dry-run-ManageControlDataAccess
+        name: "Dry Run ManageControlDataAccess"
+        image: python:3.7.2
+        script:
+          - echo "-----BEGIN ENCRYPTED PRIVATE KEY-----" > ./resource/phdata_cdops_rsa_key.p8
+          - echo $private_key_pem | tr " " "\n" >> ./resource/phdata_cdops_rsa_key.p8
+          - echo "-----END ENCRYPTED PRIVATE KEY-----" >> ./resource/phdata_cdops_rsa_key.p8
+          - export private_key_path=`pwd`/resource/phdata_cdops_rsa_key.p8
+          - export PRIVATE_KEY_PASSPHRASE=$private_key_passphrase
+          - pip install --upgrade pip  
+          - pip install -r requirement.txt
+          - python ManageControlDataAccess.py -r -a snowdata -f cda.csv -c KEY -u ${user} -pk ${private_key_path}
+
+    - step: &dry-run
+        name: "Dry Run Snowflake"
+        script:
+          - bin/dryRun.sh
+    - step: &provision
+        name: "Provision"
+        script:
+          - bin/provision.sh
+    - step: &provision-ManageControlDataAccess
+        name: "Provision ManageControlDataAccess"
+        image: python:3.7.2
+        script:
+          - echo "-----BEGIN ENCRYPTED PRIVATE KEY-----" > ./resource/phdata_cdops_rsa_key.p8
+          - echo $private_key_pem | tr " " "\n" >> ./resource/phdata_cdops_rsa_key.p8
+          - echo "-----END ENCRYPTED PRIVATE KEY-----" >> ./resource/phdata_cdops_rsa_key.p8
+          - export private_key_path=`pwd`/resource/phdata_cdops_rsa_key.p8
+          - export PRIVATE_KEY_PASSPHRASE=$private_key_passphrase
+          - pip install --upgrade pip  
+          - pip install -r requirement.txt
+          - python ManageControlDataAccess.py -a snowdata -f cda.csv -c KEY -u ${user} -pk ${private_key_path}
+#  default:
+#    - step: *fetch
+#    - step: *dry-run
+  pull-requests:
+    '**':
+      - step: *fetch
+      - step: *dry-run
+      - step: *dry-run-ManageControlDataAccess
+  branches:
+    master:
+      - step: *fetch
+      - step: *provision
+      - step: *provision-ManageControlDataAccess
