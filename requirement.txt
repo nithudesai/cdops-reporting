@@ -1,0 +1,3 @@
+click
+cryptography<39,>=38.0.0
+snowflake-connector-python[pandas]

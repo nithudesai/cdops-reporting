@@ -1,0 +1,136 @@
+--liquibase formatted sql
+--preconditions onFail:HALT onError:HALT
+
+--changeset COPY_HISTORY:1 runOnChange:true stripComments:true
+--labels: "COPY_HISTORY or GENERIC"
+
+DROP VIEW IF EXISTS  CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL;
+
+CREATE TRANSIENT TABLE IF NOT EXISTS CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE (
+	SH_KEY BINARY(20),
+	ACCOUNT_LOCATOR VARCHAR(16777216),
+	REGION_NAME VARCHAR(16777216),
+    ORGANIZATION_NAME VARCHAR(16777216),
+	FILE_NAME VARCHAR(16777216),
+	STAGE_LOCATION VARCHAR(16777216),
+	LAST_LOAD_TIME TIMESTAMP_LTZ(6),
+	ROW_COUNT NUMBER(38,0),
+	ROW_PARSED NUMBER(38,0),
+	FILE_SIZE NUMBER(38,0),
+	FIRST_ERROR_MESSAGE VARCHAR(16777216),
+	FIRST_ERROR_LINE_NUMBER NUMBER(38,0),
+	FIRST_ERROR_CHARACTER_POS NUMBER(38,0),
+	FIRST_ERROR_COLUMN_NAME VARCHAR(16777216),
+	ERROR_COUNT NUMBER(38,0),
+	ERROR_LIMIT NUMBER(38,0),
+	STATUS VARCHAR(16777216),
+	TABLE_ID NUMBER(38,0),
+	TABLE_NAME VARCHAR(16777216),
+	TABLE_SCHEMA_ID NUMBER(38,0),
+	TABLE_SCHEMA_NAME VARCHAR(16777216),
+	TABLE_CATALOG_ID NUMBER(38,0),
+	TABLE_CATALOG_NAME VARCHAR(16777216),
+	PIPE_CATALOG_NAME VARCHAR(16777216),
+	PIPE_SCHEMA_NAME VARCHAR(16777216),
+	PIPE_NAME VARCHAR(16777216),
+	PIPE_RECEIVED_TIME TIMESTAMP_LTZ(6)
+);
+
+--Override CDOPS Variables
+--UPDATE CDOPS_STATESTORE.REPORTING.CDOPS_VARIABLES SET VAR_VALUE='USING CRON 0 */3 * * * UTC'
+--WHERE
+--ACCOUNT_LOCATOR=CURRENT_ACCOUNT() AND
+--REGION_NAME=CURRENT_REGION() AND
+--VAR_USAGE='TASK_VW_SNOWFLAKE_COPY_HISTORY_FL',
+--VAR_NAME='TASK_SCHEDULE';
+
+ALTER TASK IF EXISTS CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_COPY_HISTORY_FL SUSPEND;
+
+CREATE OR REPLACE PROCEDURE CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_COPY_HISTORY_FL()
+  returns string not null
+  language javascript
+  as
+  '
+    const sql_begin_trans = snowflake.createStatement({ sqlText:`BEGIN TRANSACTION;`});
+    const sql_commit_trans = snowflake.createStatement({ sqlText:`COMMIT;`});
+    try{
+      sql_begin_trans.execute();
+      var my_sql_command_1  = "CREATE OR REPLACE TEMPORARY TABLE CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE_TEMP AS " +
+                                "SELECT " +
+                                    "     sha1_binary( concat( CURRENT_REGION() " +
+                                	"                             ,\'|\', T.ACCOUNT_LOCATOR " +
+                                    "                              ,\'|\', ifnull( FILE_NAME, \'~\' ) " +
+                                    "                              ,\'|\', ifnull( STAGE_LOCATION, \'~\' ) " +
+                                    "                              ,\'|\', ifnull( TABLE_NAME, \'~\' ) " +
+                                    "                              ,\'|\', ifnull( TABLE_SCHEMA_NAME, \'~\' ) " +
+                                    "                              ,\'|\', ifnull( PIPE_CATALOG_NAME, \'~\' ) " +
+                                    "                              ,\'|\', ifnull( PIPE_SCHEMA_NAME, \'~\' ) " +
+                                    "                              ,\'|\', ifnull( PIPE_NAME, \'~\' ) " +
+                                    "                             ,\'|\', to_char( LAST_LOAD_TIME, \'yyyy-mmm-dd hh24:mi:ss.FF3 TZHTZM\'  )  " +
+                                    "                             ) " +
+                                    "                      )   SH_KEY " +
+                                    ",T.ACCOUNT_LOCATOR AS ACCOUNT_LOCATOR " +
+                                    ",CURRENT_REGION() AS REGION_NAME " +
+                                    ",T.VAR_VALUE AS ORGANIZATION_NAME " +
+                                    ",FILE_NAME,STAGE_LOCATION,LAST_LOAD_TIME,ROW_COUNT,ROW_PARSED,FILE_SIZE,FIRST_ERROR_MESSAGE " +
+                                    ",FIRST_ERROR_LINE_NUMBER,FIRST_ERROR_CHARACTER_POS,FIRST_ERROR_COLUMN_NAME,ERROR_COUNT,ERROR_LIMIT,STATUS,TABLE_ID,TABLE_NAME " +
+                                    ",TABLE_SCHEMA_ID,TABLE_SCHEMA_NAME,TABLE_CATALOG_ID,TABLE_CATALOG_NAME,PIPE_CATALOG_NAME,PIPE_SCHEMA_NAME,PIPE_NAME,PIPE_RECEIVED_TIME " +
+                                    "FROM SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY " +
+                                    ",TABLE(get_var(\'ORGANIZATION\',\'GLOBAL\',CURRENT_ACCOUNT(),CURRENT_REGION())) T " +
+                                     "WHERE (LAST_LOAD_TIME >= DATEADD(day,-30,CURRENT_TIMESTAMP()) AND LAST_LOAD_TIME <= CURRENT_TIMESTAMP()) AND "+
+                                     "LAST_LOAD_TIME >= (SELECT NVL(MAX(LAST_LOAD_TIME),DATEADD(MONTH,-12,CURRENT_DATE)) FROM CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE);"
+
+    var statement_1 = snowflake.createStatement( {sqlText: my_sql_command_1} );
+    var result_set_1 = statement_1.execute();
+
+    var my_sql_command_2 = "MERGE INTO CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE T USING CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE_TEMP S " +
+                             "ON (T.SH_KEY = S.SH_KEY) " +
+                             "WHEN NOT MATCHED THEN " +
+                             "INSERT (SH_KEY,ACCOUNT_LOCATOR,REGION_NAME,ORGANIZATION_NAME,FILE_NAME,STAGE_LOCATION,LAST_LOAD_TIME,ROW_COUNT,ROW_PARSED,FILE_SIZE,FIRST_ERROR_MESSAGE,FIRST_ERROR_LINE_NUMBER,FIRST_ERROR_CHARACTER_POS,FIRST_ERROR_COLUMN_NAME,ERROR_COUNT,ERROR_LIMIT,STATUS,TABLE_ID,TABLE_NAME,TABLE_SCHEMA_ID,TABLE_SCHEMA_NAME,TABLE_CATALOG_ID,TABLE_CATALOG_NAME,PIPE_CATALOG_NAME,PIPE_SCHEMA_NAME,PIPE_NAME,PIPE_RECEIVED_TIME) " +
+                             "VALUES (S.SH_KEY,S.ACCOUNT_LOCATOR,S.REGION_NAME,S.ORGANIZATION_NAME,S.FILE_NAME,S.STAGE_LOCATION,S.LAST_LOAD_TIME,S.ROW_COUNT,S.ROW_PARSED,S.FILE_SIZE,S.FIRST_ERROR_MESSAGE,S.FIRST_ERROR_LINE_NUMBER,S.FIRST_ERROR_CHARACTER_POS,S.FIRST_ERROR_COLUMN_NAME,S.ERROR_COUNT,S.ERROR_LIMIT,S.STATUS,S.TABLE_ID,S.TABLE_NAME,S.TABLE_SCHEMA_ID,S.TABLE_SCHEMA_NAME,S.TABLE_CATALOG_ID,S.TABLE_CATALOG_NAME,S.PIPE_CATALOG_NAME,S.PIPE_SCHEMA_NAME,S.PIPE_NAME,S.PIPE_RECEIVED_TIME);"
+
+    var statement_2 = snowflake.createStatement( {sqlText: my_sql_command_2} );
+    var result_set_2 = statement_2.execute();
+
+    var my_sql_command_3 =   "DELETE FROM CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE " +
+                             "WHERE LAST_LOAD_TIME <= (select dateadd(day,-var_value,current_date) from table(get_var(\'DAYS_TO_RETAIN\',\'VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE\',CURRENT_ACCOUNT(),CURRENT_REGION()))) " +
+                             "AND ACCOUNT_LOCATOR = CURRENT_ACCOUNT()";
+
+    var statement_3 = snowflake.createStatement( {sqlText: my_sql_command_3} );
+    var result_set_3 = statement_3.execute();
+
+    var my_sql_command = my_sql_command_1 + my_sql_command_2 + my_sql_command_3
+    }
+    catch(err){
+   const error = `Failed: Code: ${err.code}\\n  State: ${err.state}\\n  Message: ${err.message}\\n Stack Trace:\\n   ${err.stackTraceTxt}`;
+   throw error;
+               }
+    finally{
+        sql_commit_trans.execute();
+    }
+    return "Success-"+ my_sql_command ;
+  ';
+
+SET TASK_SCHEDULE = (SELECT VAR_VALUE FROM table(get_var('TASK_SCHEDULE','TASK_VW_SNOWFLAKE_COPY_HISTORY_FL',CURRENT_ACCOUNT(),CURRENT_REGION())));
+
+CREATE OR REPLACE task CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_COPY_HISTORY_FL
+    WAREHOUSE = ${TASK_WAREHOUSE}
+    SCHEDULE = $TASK_SCHEDULE
+AS
+    CALL CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_COPY_HISTORY_FL();
+
+ALTER TASK IF EXISTS CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_COPY_HISTORY_FL RESUME;
+
+CALL CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_COPY_HISTORY_FL();
+
+CREATE OR REPLACE VIEW CDOPS_STATESTORE.REPORTING_EXT.EXTENDED_TABLE_VW_SNOWFLAKE_COPY_HISTORY_FL AS
+  SELECT DISTINCT
+  CH.*
+        FROM TABLE(CDOPS_STATESTORE.REPORTING.RESOLVE_MEMBER_RESOURCE_MAPPING_UDF()) AS C, CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE CH
+  WHERE
+      (RLIKE(TABLE_CATALOG_NAME,C.DATABASE_PATTERN) OR RLIKE(PIPE_CATALOG_NAME,C.DATABASE_PATTERN))
+  ORDER BY LAST_LOAD_TIME DESC;
+-- rollback DROP VIEW IF EXISTS CDOPS_STATESTORE.REPORTING_EXT.EXTENDED_TABLE_VW_SNOWFLAKE_COPY_HISTORY_FL;
+-- rollback DROP TABLE "CDOPS_STATESTORE"."REPORTING"."VW_SNOWFLAKE_COPY_HISTORY_FL_TABLE";
+-- rollback DROP TASK IF EXISTS  CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_COPY_HISTORY_FL;
+-- rollback DROP PROCEDURE IF EXISTS  CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_COPY_HISTORY_FL();

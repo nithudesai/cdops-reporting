@@ -1,0 +1,72 @@
+# GitLab pipeline for Tram
+image: case.artifacts.medtronic.com/docker-dev-virtual/openjdk:11
+
+sql-dry-run:
+  stage: build  
+  tags:
+    - CASE
+  script:
+    - chmod +x bin/fetch.sh bin/dryRun.sh
+    - bin/fetch.sh
+    - bin/dryRun.sh
+    - echo "SQL Dry run complete."
+  only:
+    - merge_requests
+  except:
+    refs:
+      - tags
+      - master
+
+sql-provision:
+  stage: build  
+  tags:
+    - CASE
+  script:
+    - chmod +x bin/fetch.sh bin/provision.sh
+    - bin/fetch.sh
+    - bin/provision.sh
+    - echo "SQL Provision complete."
+  except:
+    refs:
+      - tags
+  only:
+    - master
+
+ManageControlDataAccess-dry-run:
+  image: case.artifacts.medtronic.com/docker-dev-virtual/python:3.7-slim
+  tags:
+    - CASE
+  script:
+    - export PRIVATE_KEY_PASSPHRASE=${PRIVATE_KEY_PASSWORD}
+    - bash bin/pip.conf.sh
+    - pip install -r requirement.txt
+    - NO_PROXY=".snowflakecomputing.com" HTTP_PROXY=http://10.20.142.1:8080 HTTPS_PROXY=http://10.20.142.1:8080 
+    - python ManageControlDataAccess.py -r -a mdtplcprod.us-east-1.privatelink -f cda-prod.csv -c KEY -u ${user} -pk ${PRIVATE_KEY_PEM}
+    - echo "ManageControlDataAccess Dry run complete."
+  except:
+    - tags
+    - master
+  only:
+     - merge_requests  
+  dependencies: 
+    - sql-dry-run 
+ 
+ManageControlDataAccess-provision:
+  image: case.artifacts.medtronic.com/docker-dev-virtual/python:3.7-slim
+  tags:
+    - CASE
+  script:
+    - export PRIVATE_KEY_PASSPHRASE=${PRIVATE_KEY_PASSWORD}
+    - bash bin/pip.conf.sh
+    - pip install -r requirement.txt
+    - NO_PROXY=".snowflakecomputing.com" HTTP_PROXY=http://10.20.142.1:8080 HTTPS_PROXY=http://10.20.142.1:8080 
+    - python ManageControlDataAccess.py -a mdtplcprod.us-east-1.privatelink -f cda-prod.csv -c KEY -u ${user} -pk ${PRIVATE_KEY_PEM}
+    - echo "ManageControlDataAccess Provision complete."
+  only:
+    - master
+  dependencies: 
+    - sql-provision   
+
+
+
+

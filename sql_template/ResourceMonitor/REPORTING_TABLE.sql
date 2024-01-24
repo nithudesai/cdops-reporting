@@ -1,0 +1,39 @@
+--liquibase formatted sql
+--preconditions onFail:HALT onError:HALT
+
+--changeset RESOURCE_MONITOR:1 runOnChange:true stripComments:true
+--labels: RESOURCE_MONITOR
+create or replace TRANSIENT TABLE CDOPS_STATESTORE.REPORTING.RESOURCE_MONITOR (
+	name VARCHAR(16777216) CONSTRAINT pkey_1 PRIMARY KEY,
+	credit_quota VARCHAR(16777216),
+	used_credits VARCHAR(16777216),
+	remaining_credits VARCHAR(16777216),
+	level VARCHAR(16777216),
+	frequency VARCHAR(16777216),
+	start_time TIMESTAMP_LTZ(3),
+	end_time TIMESTAMP_LTZ(3),
+	notify_at VARCHAR(16777216),
+	suspend_at VARCHAR(16777216),
+	suspend_immediately_at VARCHAR(16777216),
+	created_on TIMESTAMP_LTZ(3),
+	owner VARCHAR(16777216),
+	comment VARCHAR(16777216)
+);
+
+create or replace TRANSIENT TABLE CDOPS_STATESTORE.REPORTING.WAREHOUSE (
+	name VARCHAR(16777216) CONSTRAINT pkey_1 PRIMARY KEY,
+	type VARCHAR(16777216),
+	size VARCHAR(16777216),
+	min_cluster_count NUMBER(9,0),
+	max_cluster_count NUMBER(9,0),
+	auto_suspend NUMBER(9,0),
+	auto_resume VARCHAR(16777216),
+	created_on TIMESTAMP_LTZ(3),
+	updated_on TIMESTAMP_LTZ(3),
+	owner VARCHAR(16777216),
+	comment VARCHAR(16777216),
+	resource_monitor VARCHAR(16777216) CONSTRAINT fkey_1 FOREIGN KEY REFERENCES CDOPS_STATESTORE.REPORTING.RESOURCE_MONITOR (name),
+	scaling_policy VARCHAR(16777216)
+);
+-- rollback DROP TABLE IF EXISTS CDOPS_STATESTORE.REPORTING.RESOURCE_MONITOR;
+-- rollback DROP TABLE IF EXISTS CDOPS_STATESTORE.REPORTING.WAREHOUSE;

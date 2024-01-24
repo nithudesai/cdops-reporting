@@ -1,0 +1,128 @@
+--liquibase formatted sql
+--preconditions onFail:HALT onError:HALT
+
+--changeset READERACCOUNT_WAREHOUSE_CREDIT_DATA:1 runOnChange:true stripComments:true
+--labels: "READERACCOUNT_WAREHOUSE_CREDIT_DATA or GENERIC"
+
+CREATE TRANSIENT TABLE IF NOT EXISTS CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE(
+    SH_KEY BINARY(20) CONSTRAINT UKEY_1 UNIQUE,
+	ACCOUNT_LOCATOR VARCHAR(16777216),
+	REGION_NAME VARCHAR(16777216),
+	ORGANIZATION_NAME  VARCHAR(16777216),
+	READER_ACCOUNT_NAME VARCHAR(16777216),
+	START_TIME TIMESTAMP_LTZ(6),
+    END_TIME TIMESTAMP_LTZ(6),
+    WAREHOUSE_ID NUMBER(38,0),
+    WAREHOUSE_NAME VARCHAR(16777216),
+    CREDITS_USED NUMBER(38,9),
+    CREDITS_USED_COMPUTE NUMBER(38,9),
+    CREDITS_USED_CLOUD_SERVICES NUMBER(38,9),
+    START_DATE DATE,
+    OPERATION_HOURS NUMBER(38,0),
+    TIME_OF_DAY TIME,
+    CONSTRAINT PKEY_1 PRIMARY KEY (ACCOUNT_LOCATOR,REGION_NAME,READER_ACCOUNT_NAME,WAREHOUSE_NAME)
+);
+
+--Override CDOPS Variables
+--UPDATE CDOPS_STATESTORE.REPORTING.CDOPS_VARIABLES SET VAR_VALUE='USING CRON 0 */3 * * * UTC'
+--WHERE
+--ACCOUNT_LOCATOR=CURRENT_ACCOUNT() AND
+--REGION_NAME=CURRENT_REGION() AND
+--VAR_USAGE='TASK_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL',
+--VAR_NAME='TASK_SCHEDULE';
+
+ALTER TASK IF EXISTS CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL SUSPEND;
+
+CREATE OR REPLACE PROCEDURE CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL()
+  returns string not null
+    language javascript
+    as
+    '
+      const sql_begin_trans = snowflake.createStatement({ sqlText:`BEGIN TRANSACTION;`});
+      const sql_commit_trans = snowflake.createStatement({ sqlText:`COMMIT;`});
+      try{
+          sql_begin_trans.execute();
+          const my_sql_command_1 = `CREATE OR REPLACE TEMPORARY TABLE CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE_TEMP AS
+                                    SELECT
+                                        sha1_binary( concat( current_region(),\'|\', T.ACCOUNT_LOCATOR,\'|\', WH.WAREHOUSE_NAME, \'|\', WH.READER_ACCOUNT_NAME) ) SH_KEY,
+                                        T.ACCOUNT_LOCATOR AS ACCOUNT_LOCATOR,
+                                        CURRENT_REGION() AS REGION_NAME,
+                                        T.VAR_VALUE AS ORGANIZATION_NAME,
+                                        WH.READER_ACCOUNT_NAME,
+                                        WH.START_TIME,
+                                        WH.END_TIME,
+                                        WH.WAREHOUSE_ID,
+                                        WH.WAREHOUSE_NAME,
+                                        WH.CREDITS_USED,
+                                        WH.CREDITS_USED_COMPUTE,
+                                        WH.CREDITS_USED_CLOUD_SERVICES,
+                                        TO_DATE(WH.START_TIME) AS START_DATE,
+                                        DATEDIFF(HOUR, WH.START_TIME, WH.END_TIME) AS OPERATION_HOURS,
+                                        TO_TIME(WH.START_TIME) AS TIME_OF_DAY
+                                    FROM SNOWFLAKE.READER_ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY WH , table(get_var(\'ORGANIZATION\',\'GLOBAL\',CURRENT_ACCOUNT(),CURRENT_REGION())) T
+                                    WHERE WH.START_TIME >= (SELECT NVL(MAX(START_TIME),DATEADD(MONTH,-12,CURRENT_DATE)) FROM CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE);
+                                   `
+
+          const statement_1 = snowflake.createStatement( {sqlText: my_sql_command_1} );
+          const result_set_1 = statement_1.execute();
+
+          const my_sql_command_2 = `MERGE INTO CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE T
+                                                USING
+                                                CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE_TEMP S
+                                    ON (T.SH_KEY = S.SH_KEY)
+                                    WHEN NOT MATCHED THEN
+                                    INSERT (
+                                        SH_KEY,ACCOUNT_LOCATOR,REGION_NAME,ORGANIZATION_NAME,READER_ACCOUNT_NAME,
+                                        START_TIME,END_TIME,WAREHOUSE_ID,WAREHOUSE_NAME,CREDITS_USED,CREDITS_USED_COMPUTE,
+                                        CREDITS_USED_CLOUD_SERVICES,START_DATE,OPERATION_HOURS,TIME_OF_DAY
+                                    )
+                                    VALUES (
+                                        S.SH_KEY,S.ACCOUNT_LOCATOR,S.REGION_NAME,S.ORGANIZATION_NAME,S.READER_ACCOUNT_NAME,
+                                        S.START_TIME,S.END_TIME,S.WAREHOUSE_ID,S.WAREHOUSE_NAME,S.CREDITS_USED,S.CREDITS_USED_COMPUTE,
+                                        S.CREDITS_USED_CLOUD_SERVICES,S.START_DATE,S.OPERATION_HOURS,S.TIME_OF_DAY
+                                    )
+                                   `
+          const statement_2 = snowflake.createStatement( {sqlText: my_sql_command_2} );
+          const result_set_2 = statement_2.execute();
+
+          const my_sql_command_3 = "DELETE FROM CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE " +
+                                   "WHERE START_TIME <= (select dateadd(day,-var_value,current_date) from table(get_var(\'DAYS_TO_RETAIN\',\'VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE\',CURRENT_ACCOUNT(),CURRENT_REGION()))) " +
+                                   "AND ACCOUNT_LOCATOR = CURRENT_ACCOUNT();"
+
+          const statement_3 = snowflake.createStatement( {sqlText: my_sql_command_3} );
+          const result_set_3 = statement_3.execute();
+      }
+      catch(err){
+          const error = `Failed: Code: ${err.code}\\n  State: ${err.state}\\n  Message: ${err.message}\\n Stack Trace:\\n   ${err.stackTraceTxt}`;
+          throw error;
+      }
+      finally{
+          sql_commit_trans.execute();
+      }
+      return "Success";
+    ';
+
+SET TASK_SCHEDULE = (SELECT VAR_VALUE FROM table(get_var('TASK_SCHEDULE','TASK_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL',CURRENT_ACCOUNT(),CURRENT_REGION())));
+
+CREATE OR REPLACE task CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL
+    WAREHOUSE = ${TASK_WAREHOUSE}
+    SCHEDULE =  $TASK_SCHEDULE
+AS
+    CALL CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL();
+
+ALTER TASK IF EXISTS CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL RESUME;
+
+CALL CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL();
+
+CREATE OR REPLACE VIEW CDOPS_STATESTORE.REPORTING_EXT.EXTENDED_TABLE_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL AS
+  SELECT DISTINCT
+    WH.*, datediff(second, WH.START_TIME, WH.END_TIME) AS ELAPSED_TIME_IN_SEC
+  FROM TABLE(CDOPS_STATESTORE.REPORTING.RESOLVE_MEMBER_RESOURCE_MAPPING_UDF()) AS C, CDOPS_STATESTORE.REPORTING.VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL_TABLE WH
+  WHERE
+      C.WAREHOUSE_PATTERN IS NOT NULL AND RLIKE(WH.WAREHOUSE_NAME,C.WAREHOUSE_PATTERN)
+  ORDER BY START_DATE DESC;
+
+-- rollback DROP VIEW IF EXISTS CDOPS_STATESTORE.REPORTING_EXT.EXTENDED_TABLE_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL;
+-- rollback DROP TABLE "CDOPS_STATESTORE"."REPORTING"."VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_TABLE";
+-- rollback DROP TASK IF EXISTS  CDOPS_STATESTORE.REPORTING.TASK_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL;
+-- rollback DROP PROCEDURE IF EXISTS  CDOPS_STATESTORE.REPORTING.SP_VW_SNOWFLAKE_READERACCOUNT_WAREHOUSE_CREDIT_DATA_FL();
