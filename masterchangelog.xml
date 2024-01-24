@@ -12,7 +12,7 @@
     <include file="sql_template/resourcemonitorchangelog.xml"/>
     <include file="sql_template/genericreportchangelog.xml"/>
     <include file="sql_template/budgetextendedchangelog.xml"/>
-    <include file="sql_template/FivetranReportchangelog.xml"/>
+    <!--<include file="sql_template/FivetranReportchangelog.xml"/>-->
     <!--<includeAll path="sql_template/Budget_ExtendedMetadata/"/>-->
     <!--<includeAll path="sql_template/ResourceMonitor/"/>-->
 </databaseChangeLog>
