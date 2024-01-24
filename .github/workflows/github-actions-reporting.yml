@@ -1,0 +1,35 @@
+name: Reporting Deploy
+
+on:
+  push:
+    branches:
+    - main
+
+env:
+  user: "PHDATA_CDOPS_REPORT"
+  private_key_passphrase: ""
+  SNOWFLAKE_PRIVATE_KEY_PEM: ""
+  TASK_WAREHOUSE: "CDOPS_REPORT_SYSTEM_WH"
+  ACCOUNT_LOCATOR: "CDB54519"
+  ORGANIZATION: "DHZERXT"
+
+env:
+  
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt'
+        java-version: '11'
+    
+    - run: echo "${SNOWFLAKE_PRIVATE_KEY_PEM} >> private_key_file.p8"
+    - run: ./bin/fetch.sh
+    - run: ./bin/dryRun.sh
+
