@@ -8,6 +8,7 @@ README
 CDOps Monitoring project provides set of SQL files which provisions UDF, VIEWS and ACCESS CONTROL TABLE    
 to access snowflake metadata from `SNOWFLAKE -> ACCOUNT_USAGE -> VIEWS` or `SNOWFLAKE -> INFORMATION_SCHEMA -> TABLE_FUNCTIONS`
 
+#
 # Infrastructure Design
 
 ![CDOPS Reporting High Level Resource Definition](./doc/CDOPS_REPORTING_HIGH_LEVEL.jpeg)
